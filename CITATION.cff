@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "Please cite the accompanying paper when using this code or analysis data."
+title: "Knowing When to Intervene: Causal Evaluation of AI Agents"
+type: software
+authors:
+  - family-names: Sawarni
+    given-names: Ayush
+  - family-names: Xing
+    given-names: Wenqian
+  - family-names: Zrnic
+    given-names: Tijana
+  - family-names: Johari
+    given-names: Ramesh
+  - family-names: Syrgkanis
+    given-names: Vasilis
+repository-code: "https://github.com/sawarniayush/agent-evaluation-sequential-randomization"

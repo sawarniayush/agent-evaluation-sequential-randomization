@@ -1,0 +1,59 @@
+{
+  "policies": [
+    "never",
+    "identity",
+    "account_details",
+    "order_details",
+    "catalog",
+    "account_changes",
+    "pending_orders",
+    "returns",
+    "calculation",
+    "handoff"
+  ],
+  "tasks": 228,
+  "episodes_per_policy": 456,
+  "monte_carlo_episodes": 4560,
+  "randomized_episodes": 2280,
+  "group_tools": {
+    "identity": [
+      "find_user_id_by_email",
+      "find_user_id_by_name_zip"
+    ],
+    "account_details": [
+      "get_user_details"
+    ],
+    "order_details": [
+      "get_order_details"
+    ],
+    "catalog": [
+      "get_product_details",
+      "get_item_details",
+      "list_all_product_types"
+    ],
+    "account_changes": [
+      "modify_user_address"
+    ],
+    "pending_orders": [
+      "cancel_pending_order",
+      "modify_pending_order_items",
+      "modify_pending_order_address",
+      "modify_pending_order_payment"
+    ],
+    "returns": [
+      "return_delivered_order_items",
+      "exchange_delivered_order_items"
+    ],
+    "calculation": [
+      "calculate"
+    ],
+    "handoff": [
+      "transfer_to_human_agents"
+    ]
+  },
+  "sampling_unit": "Completed trajectory; repeated task runs are independent",
+  "interval": "Symmetric pointwise 95% Student t, n-1 degrees of freedom",
+  "mc_degrees_of_freedom": 4559,
+  "snmm_degrees_of_freedom": 2279,
+  "contribution": "I(policy=p) * (Y - mean_p) / n_p; gain subtracts never contribution"
+}

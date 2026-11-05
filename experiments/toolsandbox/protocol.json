@@ -1,0 +1,49 @@
+{
+  "benchmark": {
+    "name": "ToolSandbox",
+    "repository": "https://github.com/apple-aiml-research/ToolSandbox",
+    "commit": "c8571d7854316d2e1c5f288e59fe1e34e53f6dd1",
+    "scenarios": "All 1,032 official scenarios (129 base x 8 tool variants), built after random.seed(42) as in the official CLI",
+    "loop": "Official Scenario.play_and_evaluate, max_messages from each scenario"
+  },
+  "user_simulator": {
+    "model": "gpt-4.1-mini-2025-04-14",
+    "temperature": 0.0,
+    "max_completion_tokens": 2048,
+    "prompt": "ToolSandbox's scenario prompts and few-shot demonstrations, unchanged",
+    "end_with_text": "Text accompanying end_conversation is delivered; that end call is ignored."
+  },
+  "clock": {
+    "unit": "Every actor turn containing tool calls; user-facing replies are not reviewed",
+    "propensity": 0.5,
+    "randomization": "Independent Bernoulli per decision, seeded per episode",
+    "environment_time": "Fixed at episode admission, America/Los_Angeles; shared by scenario construction, tools and evaluation; persisted before calls and reused on infrastructure retry",
+    "environment_clock_version": "fixed_episode_clock_v1"
+  },
+  "trials": 3,
+  "intervention": {
+    "probability": 0.5,
+    "reviewer": {
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "max_completion_tokens": 6000
+    },
+    "control": "Execute the frozen proposal",
+    "treatment": "Review the frozen proposal, then execute the validated next action",
+    "invalid_delivery": "Execute the original proposal and retain assignment"
+  },
+  "outcome": "Official ToolSandbox similarity, set to zero when a minefield matches.",
+  "agents": [
+    {
+      "model": "gpt-5-nano-2025-08-07",
+      "reasoning_effort": "minimal",
+      "max_completion_tokens": 4000
+    },
+    {
+      "model": "claude-haiku-5-5",
+      "thinking": "disabled",
+      "effort": "low",
+      "max_completion_tokens": 4000
+    }
+  ]
+}

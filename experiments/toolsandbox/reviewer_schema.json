@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "tool",
+        "respond"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "tool_name": {
+      "type": "string"
+    },
+    "arguments_json": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "action",
+    "reason",
+    "tool_name",
+    "arguments_json",
+    "message",
+    "evidence_refs"
+  ],
+  "additionalProperties": false
+}
