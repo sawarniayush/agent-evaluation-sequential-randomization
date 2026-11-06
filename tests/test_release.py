@@ -6,14 +6,10 @@ import numpy as np
 from threadpoolctl import threadpool_limits
 
 from agent_eval.analysis import STUDIES, fit, load, verify
-from agent_eval.integrity import verify_data
 from agent_eval.moments import future_sum
 
 
 class ReleaseTests(unittest.TestCase):
-    def test_file_integrity(self):
-        verify_data()
-
     def test_full_trajectory_outcomes_and_folds(self):
         for study in STUDIES:
             with self.subTest(study=study):

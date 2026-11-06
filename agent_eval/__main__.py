@@ -11,7 +11,7 @@ from .analysis import ROOT, STUDIES, fit, verify
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("reproduce", "figures", "verify-data"))
+    parser.add_argument("command", choices=("reproduce", "figures"))
     parser.add_argument("--study", choices=("all", *STUDIES, "retail_mc"), default="all")
     parser.add_argument(
         "--refit-nuisance",
@@ -20,11 +20,6 @@ def main():
     )
     parser.add_argument("--output", type=Path, default=ROOT / "outputs")
     args = parser.parse_args()
-    if args.command == "verify-data":
-        from .integrity import verify_data
-
-        verify_data()
-        return
     if args.command == "figures":
         from .figures import render
 

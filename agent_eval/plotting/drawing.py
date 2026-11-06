@@ -25,7 +25,6 @@ plt.rcParams.update(
         "axes.spines.right": False,
     }
 )
-AUDIT = {}
 OUTPUT = None
 
 
@@ -43,8 +42,6 @@ def save(fig, name):
     fig.savefig(OUTPUT / (name + ".pdf"))
     plt.close(fig)
 
-
-AUDIT = {}
 
 WIDE_ARROW_WIDTH_PT = 22.0
 
@@ -137,52 +134,6 @@ def wide_interval_legend(fig, threshold, unit, max_right, fontsize=8):
     bounds = key.get_window_extent(fig.canvas.get_renderer())
     assert bounds.x1 < fig.bbox.x0 + max_right * fig.bbox.width, label
     assert bounds.y0 >= fig.bbox.y0 and bounds.y1 <= fig.bbox.y1, label
-    return dict(
-        label=label,
-        arrow_width_points=WIDE_ARROW_WIDTH_PT,
-        arrow_head_points=WIDE_ARROW_HEAD_PT,
-        location="lower left",
-    )
-
-
-def record(row):
-    result = {
-        k: row[k]
-        for k in (
-            "estimand",
-            "group_id",
-            "group_level",
-            "method",
-            "role",
-            "estimate",
-            "lower",
-            "upper",
-            "effect_unit",
-            "matching_decisions",
-            "treated_decisions",
-            "skip_decisions",
-        )
-    }
-    suffix = "points" if row["effect_unit"] == "score points" else "pp"
-    result.update(
-        {f"{field}_{suffix}": row[f"{field}_{suffix}"] for field in ("estimate", "lower", "upper")}
-    )
-    result.update(
-        {
-            k: row[k]
-            for k in (
-                "configuration_id",
-                "prediction_basis",
-                "effect_basis",
-                "sharing_mode",
-                "supported",
-                "fit_status",
-                "support_reason",
-            )
-            if k in row
-        }
-    )
-    return result
 
 
 def effect_label(rows):
@@ -310,14 +261,6 @@ def steering_forest(rows, name, sections):
         )
         counts = f"{int(row['matching_decisions']):,}"
         label_ax.text(0.99, ypos, counts, ha="right", va="center", fontsize=8, color="#465260")
-    audit = {
-        "kind": "steering three-target forest; positive = more violations",
-        "sections": list(sections),
-        "primary_rows": [],
-        "comparison_rows": [],
-        "structural_zero": [],
-        "omitted": [],
-    }
     for col, target in enumerate(TARGETS):
         ax = fig.add_axes([left + col * (width + gap), bottom, width, top - bottom])
         ax.set_ylim(*ylim)
@@ -342,7 +285,6 @@ def steering_forest(rows, name, sections):
                     fontsize=8,
                     color="#707780",
                 )
-                audit["structural_zero"].append(record(r))
                 continue
             if not valid(r):
                 reason = "unavailable"
@@ -356,7 +298,6 @@ def steering_forest(rows, name, sections):
                     fontsize=8,
                     color="#707780",
                 )
-                audit["omitted"].append({**record(r), "reason": r["support_reason"]})
                 continue
             items = [r]
             if target == "blip_randomized":
@@ -376,7 +317,6 @@ def steering_forest(rows, name, sections):
                     markersize=3,
                 )
                 bounds += [lo, hi]
-                audit["primary_rows" if k == 0 else "comparison_rows"].append(record(item))
         span = max(bounds) - min(bounds)
         ax.set_xlim(min(bounds) - 0.09 * span, max(bounds) + 0.09 * span)
         ax.xaxis.set_major_locator(MaxNLocator(nbins=3, min_n_ticks=3))
@@ -389,4 +329,3 @@ def steering_forest(rows, name, sections):
         fontsize=8,
     )
     save(fig, name)
-    AUDIT[name] = audit

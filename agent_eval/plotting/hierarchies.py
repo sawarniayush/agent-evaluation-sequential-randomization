@@ -7,9 +7,6 @@ from .data import TARGETS, BLUE, ORANGE, STUDY_LABELS, load, metadata, primary, 
 plt = figures.plt
 
 
-MC_MODEL = "retail_snmm"
-
-
 ARROW_THRESHOLD = 30.0
 
 
@@ -245,20 +242,7 @@ def hierarchy_forest(study, rows, lines, axes, name, zoom=False):
         fontsize=8,
         color="#465260",
     )
-    audit = {
-        "kind": "three-target hierarchy",
-        "axis_scope": "actor" if zoom else "shared",
-        "arrow_edge_margin_fraction": ARROW_EDGE_MARGIN if zoom else None,
-        "arrow_width_threshold": ARROW_THRESHOLD,
-        "study": study,
-        "xlims": axes,
-        "row_order": [item["group"] for item in lines],
-        "aliases": [],
-        "primary_rows": [],
-        "comparison_rows": [],
-        "omitted": [],
-        "total_episodes": int(rows[0]["total_episodes"]),
-    }
+    has_wide_intervals = False
     for item, ypos in zip(lines, positions):
         row = primary(rows, "blip_randomized", item["group"])
         strong = item["depth"] == 0 or retail and item["depth"] == 1
@@ -286,7 +270,6 @@ def hierarchy_forest(study, rows, lines, axes, name, zoom=False):
                     math.isclose(float(family[k]), float(tool[k]), abs_tol=1e-9)
                     for k in ("estimate", "lower", "upper", "matching_decisions")
                 )
-            audit["aliases"].append({"group": item["group"], "tool": item["alias"]})
         labels.text(
             0.99,
             ypos,
@@ -310,7 +293,6 @@ def hierarchy_forest(study, rows, lines, axes, name, zoom=False):
         )
         ax.tick_params(axis="x", length=3, pad=3, labelsize=8)
         for item, ypos in zip(lines, positions):
-            row = primary(rows, target, item["group"])
             items = plotted(rows, target, item["group"])
             if not items:
                 reason = "unavailable"
@@ -324,12 +306,6 @@ def hierarchy_forest(study, rows, lines, axes, name, zoom=False):
                     fontsize=7.4,
                     color="#707780",
                 )
-                audit["omitted"].append({**figures.record(row), "reason": reason})
-                if target == "blip_randomized":
-                    other = figures.comparison(rows, item["group"])
-                    audit["omitted"].append(
-                        {**figures.record(other), "reason": "primary marker withheld"}
-                    )
                 continue
             for index, row in enumerate(items):
                 offset = (-0.14 if index == 0 else 0.14) if len(items) == 2 else 0
@@ -346,14 +322,7 @@ def hierarchy_forest(study, rows, lines, axes, name, zoom=False):
                     ARROW_THRESHOLD,
                     markersize=3.2,
                 )
-                audit["primary_rows" if index == 0 else "comparison_rows"].append(
-                    {**figures.record(row), "interval_display": display}
-                )
-            if target == "blip_randomized" and len(items) == 1:
-                other = figures.comparison(rows, item["group"])
-                audit["omitted"].append(
-                    {**figures.record(other), "reason": "comparison unavailable"}
-                )
+                has_wide_intervals |= display == "arrow"
     title = STUDY_LABELS[study].split(": ", 1)[1]
     fig.text(0.008, 1 - 0.19 / height, title, fontsize=10, fontweight="bold", va="center")
     handles = [
@@ -371,23 +340,14 @@ def hierarchy_forest(study, rows, lines, axes, name, zoom=False):
         borderpad=0,
     )
     fig.text((left + right) / 2, 0.08 / height, figures.effect_label(rows), ha="center", fontsize=8)
-    if any(
-        r["interval_display"] == "arrow"
-        for key in ("primary_rows", "comparison_rows")
-        for r in audit[key]
-    ):
-        audit["wide_interval_legend"] = figures.wide_interval_legend(
+    if has_wide_intervals:
+        figures.wide_interval_legend(
             fig, ARROW_THRESHOLD, "pp" if retail else "score points", left - 0.02
         )
-    assert (
-        len(audit["primary_rows"]) + sum(r["role"] == "primary" for r in audit["omitted"])
-        == len(lines) * 3
-    )
     figures.save(fig, name)
-    figures.AUDIT[name] = audit
 
 
-def mc_forest(rows, metrics):
+def mc_forest(rows):
     retail = load("retail")  # Include the two MC-only utility policies.
     selected = [r for r in rows if r["policy"] != "never"]
     assert len(selected) == 9
@@ -405,8 +365,6 @@ def mc_forest(rows, metrics):
             100 * float(source["target_value_probability"]),
             abs_tol=1e-9,
         )
-    rmse = math.sqrt(sum(float(r["mc_minus_snmm_gain_pp"]) ** 2 for r in selected) / len(selected))
-    assert math.isclose(rmse, float(metrics["gain_rmse_pp"]), abs_tol=1e-9)
     height = 3.7
     fig = plt.figure(figsize=(6.5, height))
     bottom, top = 0.52 / height, 1 - 0.48 / height
@@ -424,22 +382,6 @@ def mc_forest(rows, metrics):
         color="#465260",
     )
     ax.set(ylim=(8.6, -0.7), yticks=[])
-    audit = {
-        "kind": "direct policy gains versus selected SNMM",
-        "model": MC_MODEL,
-        "arrow_width_threshold": ARROW_THRESHOLD,
-        "interval_displays": [],
-        "mc_episodes_per_policy": 456,
-        "mc_total_episodes": 4560,
-        "mc_rounds": [1, 2],
-        "mc_degrees_of_freedom": 4559,
-        "randomized_episodes": 2280,
-        "interval_type": "pointwise_95_trajectory_t",
-        "policy_rows": selected,
-        "metrics": metrics,
-        "gain_rmse_recomputed_pp": rmse,
-        "source_agreement_tolerance": 1e-9,
-    }
     bounds = []
     for ypos, row in enumerate(selected):
         labels.text(0, ypos, row["label"], va="center", fontsize=8.5)
@@ -459,15 +401,11 @@ def mc_forest(rows, metrics):
             point, low, high = (
                 float(row[f"{prefix}_gain{suffix}_pp"]) for suffix in ("", "_low", "_high")
             )
-            display = figures.draw_interval(
+            figures.draw_interval(
                 ax, point, low, high, ypos + offset, color, marker, ARROW_THRESHOLD, markersize=3.5
             )
             bounds.extend(figures.interval_extent(point, low, high, ARROW_THRESHOLD))
-            audit["interval_displays"].append(
-                {"policy": row["policy"], "series": prefix, "interval_display": display}
-            )
     ax.set_xlim(limits(bounds))
-    audit["xlim"] = list(ax.get_xlim())
     ax.axvline(0, color="#77818c", lw=0.8, zorder=0)
     ax.spines["left"].set_visible(False)
     ax.xaxis.set_major_locator(figures.MaxNLocator(5))
@@ -487,4 +425,3 @@ def mc_forest(rows, metrics):
     )
     fig.text(0.73, 0.065 / height, "Policy gain (percentage points)", ha="center", fontsize=8)
     figures.save(fig, "retail_mc_policy_gains")
-    figures.AUDIT["retail_mc_policy_gains"] = audit

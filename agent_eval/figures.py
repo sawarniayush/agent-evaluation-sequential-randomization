@@ -1,7 +1,6 @@
 """Regenerate the ten result figures included in the paper."""
 
 import csv
-import math
 
 from .analysis import ROOT
 from .plotting import drawing, hierarchies, toolsandbox
@@ -25,15 +24,5 @@ def render(output):
     )
     with (ROOT / "data/retail_mc/estimates.csv").open() as stream:
         rows = list(csv.DictReader(stream))
-    rmse = math.sqrt(
-        sum(
-            (float(r["mc_gain_pp"]) - float(r["snmm_gain_pp"])) ** 2
-            for r in rows
-            if r["policy"] != "never"
-        )
-        / 9
-    )
-    for row in rows:
-        row["mc_minus_snmm_gain_pp"] = float(row["mc_gain_pp"]) - float(row["snmm_gain_pp"])
-    hierarchies.mc_forest(rows, {"gain_rmse_pp": rmse})
+    hierarchies.mc_forest(rows)
     print(f"Wrote ten result figures to {output}")

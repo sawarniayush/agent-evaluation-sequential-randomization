@@ -141,33 +141,7 @@ def forest(study, rows, lines, axes, name):
         ha="right",
         va="bottom",
     )
-    audit = dict(
-        kind="three-target indented hierarchy",
-        study=study,
-        axis_scope="agent",
-        arrow_width_threshold=ARROW_THRESHOLD,
-        arrow_edge_margin_fraction=None,
-        xlims=axes,
-        row_order=[item["group"] for item in lines],
-        row_levels={item["group"]: item["depth"] for item in lines},
-        row_labels={item["group"]: item["label"] for item in lines},
-        tool_label_style="api_name",
-        row_tools={item["group"]: item["tools"] for item in lines},
-        aliases=[dict(group=item["group"], tool=item["alias"]) for item in lines if item["alias"]],
-        parent_child_edges=[],
-        primary_rows=[],
-        comparison_rows=[],
-        omitted=[],
-        total_episodes=int(rows[0]["total_episodes"]),
-        width_inches=6.5,
-        height_inches=height,
-    )
-    audit["minimum_count_screen_waived"] = True
-    audit["reporting_rule"] = (
-        "Report finite estimates with observed assignments in both arms, "
-        "including groups below the original count thresholds. "
-        "Keep source support flags, failed-fit exclusions and unobserved groups."
-    )
+    has_wide_intervals = False
     text_pairs = []
     for item in lines:
         key, depth = item["group"], item["depth"]
@@ -190,7 +164,6 @@ def forest(study, rows, lines, axes, name):
                 labels.plot(
                     [rail_x, end_x], [positions[child]] * 2, color="#aab8c1", lw=0.65, zorder=1
                 )
-                audit["parent_child_edges"].append([key, child])
         x = (0.015, 0.175, 0.33)[depth]
         is_tool = depth == 2 or item["alias"] is not None
         label = labels.text(
@@ -228,7 +201,6 @@ def forest(study, rows, lines, axes, name):
             key, cy = item["group"], positions[item["group"]]
             if item["depth"] == 0:
                 ax.axhspan(cy - 0.43, cy + 0.43, color="#edf2f5", zorder=0)
-            row = primary(rows, target, key)
             results = plotted(rows, target, key, reportable)
             if not results:
                 ax.text(
@@ -241,17 +213,6 @@ def forest(study, rows, lines, axes, name):
                     fontsize=7.3,
                     color="#7b838a",
                 )
-                audit["omitted"].append(
-                    {**figures.record(row), "reason": row.get("support_reason") or "unavailable"}
-                )
-                if target == TARGETS[0]:
-                    other = figures.comparison(rows, key)
-                    audit["omitted"].append(
-                        {
-                            **figures.record(other),
-                            "reason": other.get("support_reason") or "unavailable",
-                        }
-                    )
             for index, result in enumerate(results):
                 offset = (-0.15 if index == 0 else 0.15) if len(results) == 2 else 0
                 point, low, high = (float(result[k]) for k in ("estimate", "lower", "upper"))
@@ -267,12 +228,7 @@ def forest(study, rows, lines, axes, name):
                     ARROW_THRESHOLD,
                     markersize=3.1 if item["depth"] == 0 else 2.8,
                 )
-                entry = {**figures.record(result), "interval_display": display}
-                if not valid(result):
-                    entry["reporting_override"] = "minimum_group_count_rule"
-                audit["primary_rows" if result["role"] == "primary" else "comparison_rows"].append(
-                    entry
-                )
+                has_wide_intervals |= display == "arrow"
     handles = [
         figures.Line2D([], [], color=BLUE, marker="o", lw=1, markersize=3, label="AIPW"),
         figures.Line2D([], [], color=ORANGE, marker="s", lw=1, markersize=3, label="SNMM"),
@@ -294,12 +250,8 @@ def forest(study, rows, lines, axes, name):
         fontsize=7.6,
         ha="center",
     )
-    if any(
-        r["interval_display"] == "arrow"
-        for key in ("primary_rows", "comparison_rows")
-        for r in audit[key]
-    ):
-        audit["wide_interval_legend"] = figures.wide_interval_legend(
+    if has_wide_intervals:
+        figures.wide_interval_legend(
             fig, ARROW_THRESHOLD, "score points", left - 0.02, fontsize=7.4
         )
     fig.canvas.draw()
@@ -308,20 +260,13 @@ def forest(study, rows, lines, axes, name):
         assert label.get_window_extent(renderer).x1 + 2 < count.get_window_extent(renderer).x0, (
             label.get_text()
         )
-    assert len(audit["primary_rows"]) + sum(
-        r["role"] == "primary" for r in audit["omitted"]
-    ) == 3 * len(lines)
-    assert len(audit["comparison_rows"]) + sum(
-        r["role"] == "comparison" for r in audit["omitted"]
-    ) == len(lines)
     figures.save(fig, name)
-    figures.AUDIT[name] = audit
 
 
-def render_hierarchy_forests(study, rows, panels=None):
+def render_hierarchy_forests(study, rows):
     lines = hierarchy_lines(study, rows)
     axes = zoomed_axes(study, rows, lines, reportable)
-    names = []
+    names, displayed = [], []
     for suffix, domains in PANELS:
         selected = [
             item
@@ -333,13 +278,8 @@ def render_hierarchy_forests(study, rows, panels=None):
             )
         ]
         name = study + "_hierarchy_" + suffix
-        if panels is None or suffix in panels:
-            forest(study, rows, selected, axes, name)
-        else:
-            previous = figures.AUDIT[name]
-            assert previous["row_order"] == [item["group"] for item in selected]
-            assert previous["xlims"] == {key: list(value) for key, value in axes.items()}, name
+        forest(study, rows, selected, axes, name)
         names.append(name)
-    displayed = [key for name in names for key in figures.AUDIT[name]["row_order"]]
+        displayed.extend(item["group"] for item in selected)
     assert displayed == [item["group"] for item in lines]
     return names

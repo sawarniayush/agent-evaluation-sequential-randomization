@@ -22,7 +22,6 @@ Use Python 3.12 and the pinned dependencies:
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m agent_eval verify-data
 python -m agent_eval reproduce --refit-nuisance
 python -m agent_eval figures --output outputs/figures
 ```
@@ -61,7 +60,6 @@ See [the estimator specification](docs/estimators.md) and [the data dictionary](
 - [`data/`](data/): numerical feature panels, assignments, terminal outcomes, fold assignments, exact parameters, and paper result tables.
 - [`experiments/`](experiments/): experiment settings, reviewer prompts, response schemas, and pre-assignment feature definitions.
 - [`figures/`](figures/): the 13 figures included in the manuscript. The figure command regenerates the ten statistical result figures.
-- [`checksums.json`](checksums.json): SHA-256 inventory for data, configurations, and figures.
 
 The analysis starts from the included feature panels. Experiment settings and prompts document how those panels were collected; the commands above reproduce the statistical analyses and result figures.
 
