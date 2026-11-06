@@ -2,6 +2,8 @@
 
 Code, analysis data, and figures for **Knowing When to Intervene: Causal Evaluation of AI Agents**, by Ayush Sawarni, Wenqian Xing, Tijana Zrnic, Ramesh Johari, and Vasilis Syrgkanis.
 
+[Read the paper (PDF)](paper.pdf).
+
 The experiments randomize an intervention at eligible points in an agent's trajectory. The analyses estimate its effect at the current decision under two continuation policies, and the gain from applying it whenever a specified group is reached.
 
 | Experiment | Agents | Intervention | Outcome | Analyzed trajectories |
@@ -54,6 +56,7 @@ See [the estimator specification](docs/estimators.md) and [the data dictionary](
 
 ## Files
 
+- [`paper.pdf`](paper.pdf): the full paper, including references and appendices.
 - [`agent_eval/`](agent_eval/): estimators, inference, reproduction checks, and result-figure scripts.
 - [`data/`](data/): numerical feature panels, assignments, terminal outcomes, fold assignments, exact parameters, and paper result tables.
 - [`experiments/`](experiments/): experiment settings, reviewer prompts, response schemas, and pre-assignment feature definitions.
